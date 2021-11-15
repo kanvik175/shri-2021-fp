@@ -1,51 +1,80 @@
-/**
- * @file Домашка по FP ч. 2
- * 
- * Подсказки:
- * Метод get у инстанса Api – каррированый
- * GET / https://animals.tech/{id}
- * 
- * GET / https://api.tech/numbers/base
- * params:
- * – number [Int] – число
- * – from [Int] – из какой системы счисления
- * – to [Int] – в какую систему счисления
- * 
- * Иногда промисы от API будут приходить в состояние rejected, (прямо как и API в реальной жизни)
- * Ответ будет приходить в поле {result}
- */
 import Api from '../tools/api';
+import { prop, compose, tap, ifElse, test, allPass, length, gt, lt, andThen } from 'ramda';
 
 const api = new Api();
 
-/**
- * Я – пример, удали меня
- */
-const wait = time => new Promise(resolve => {
-    setTimeout(resolve, time);
-})
+const getHandleSuccess = prop('handleSuccess');
+const getHandleError = prop('handleError');
+const getWriteLog = prop('writeLog');
+const getValue = prop('value');
+const isNumber = test(/^\d+(.)?\d+$/);
+const isValidLength = compose(
+  allPass([
+    gt(10),
+    lt(2),
+  ]),
+  length,
+)
+const validate = compose(
+  allPass([
+    isNumber,
+    isValidLength,
+  ]),
+  getValue,
+);
+const convertToNumber = compose(
+  Math.round,
+  parseFloat,
+  getValue,
+)
+const toSqr = (value) => Math.pow(value, 2);
+const getRemainder = (value) => value % 3;
 
-const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
-    /**
-     * Я – пример, удали меня
-     */
-    writeLog(value);
+const getBinaryNumber = (value) => api.get('https://api.tech/numbers/base', {
+  from: 10,
+  to: 2,
+  number: value,
+});
 
-    api.get('https://api.tech/numbers/base', {from: 2, to: 10, number: '01011010101'}).then(({result}) => {
-        writeLog(result);
-    });
+const getResult = prop('result');
 
-    wait(2500).then(() => {
-        writeLog('SecondLog')
+const getAnimal = (id) => api.get('https://animals.tech/' + id, {});
 
-        return wait(1500);
-    }).then(() => {
-        writeLog('ThirdLog');
 
-        return wait(400);
-    }).then(() => {
-        handleSuccess('Done');
-    });
+const processSequence = (data) => {
+
+  const handleValidationError = (error) => getHandleError(error)('ValidationError');
+  const handleSuccess = getHandleSuccess(data);
+  const writeLog = getWriteLog(data);
+
+  const log = compose(
+    writeLog,
+    getValue,
+  );
+
+  return compose(
+    ifElse(
+      validate,
+      compose(
+        andThen(handleSuccess),
+        andThen(tap(writeLog)),
+        andThen(getResult),
+        andThen(getAnimal),
+        andThen(tap(writeLog)),
+        andThen(getRemainder),
+        andThen(tap(writeLog)),
+        andThen(toSqr),
+        andThen(tap(writeLog)),
+        andThen(length),
+        andThen(tap(writeLog)),
+        andThen(getResult),
+        getBinaryNumber,
+        tap(writeLog),
+        convertToNumber,
+      ),
+      tap(handleValidationError)
+    ),
+    tap(log),
+  )(data);
 }
-
 export default processSequence;

@@ -57,7 +57,6 @@ const processSequence = (data) => {
       validate,
       compose(
         andThen(handleSuccess),
-        andThen(tap(writeLog)),
         andThen(getResult),
         andThen(getAnimal),
         andThen(tap(writeLog)),

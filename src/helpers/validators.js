@@ -117,7 +117,7 @@ export const validateFieldN7 = compose(
 );
 
 // 8. Не красная и не белая звезда.
-export const validateFieldN8 = anyPass([
+export const validateFieldN8 = allPass([
   compose(
     not,
     isWhiteColor,
